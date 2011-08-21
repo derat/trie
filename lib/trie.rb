@@ -406,6 +406,40 @@ class Trie
   end
 
   ##
+  # Get a JSON representation of this Trie.
+  #
+  # ==== Example
+  # require 'json'
+  #
+  # t = Trie.new
+  # t.insert("apple", 1)
+  # t.insert("anchovy", 2)
+  # t.insert("apple pie", 3)
+  # t.insert("strawberry", 4)
+  # t.insert("apple", 5)
+  # t.to_json('children', 'values', 'compressed_key')
+  #
+  def to_json(values_key='v', children_key='c', compressed_key_key='k')
+    o = {}
+
+    if !@values.empty?
+      o[values_key] = @values.to_a.sort
+    elsif !@compressed_values.empty?
+      o[values_key] = @compressed_values.to_a.sort
+    end
+
+    o[compressed_key_key] = @compressed_key.join if !@compressed_key.empty?
+
+    if !@children.empty?
+      c = {}
+      @children.each {|k, v| c[k] = v }
+      o[children_key] = c
+    end
+
+    o.to_json
+  end
+
+  ##
   # Get an Array containing all values in this Trie.
   #
   # ==== Example
