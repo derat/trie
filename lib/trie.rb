@@ -408,6 +408,19 @@ class Trie
   ##
   # Get a JSON representation of this Trie.
   #
+  # Each node is converted to an object.
+  #
+  # |values_key| maps to an array containing all of the node's values.
+  #
+  # If child nodes have been compressed into the current node,
+  # |compressed_key_key| maps to the suffix formed by the children.
+  #
+  # By default, |children_key| maps to another object where child nodes'
+  # letters map to the objects representing the nodes.  If |children_key|
+  # is nil, this mapping will instead be placed in the top-level object to
+  # save space (but note that |values_key| and |compressed_key_key| must
+  # not conflict with children's keys).
+  #
   # ==== Example
   # require 'json'
   #
@@ -420,7 +433,15 @@ class Trie
   # t.to_json('children', 'values', 'compressed_key')
   #
   def to_json(values_key='v', children_key='c', compressed_key_key='k')
+    to_json_objects(values_key, children_key, compressed_key_key).to_json
+  end
+
+  ##
+  # Helper method for to_json().
+  #
+  def to_json_objects(values_key, children_key, compressed_key_key)
     o = {}
+    o[compressed_key_key] = @compressed_key.join if !@compressed_key.empty?
 
     if !@values.empty?
       o[values_key] = @values.to_a.sort
@@ -428,15 +449,19 @@ class Trie
       o[values_key] = @compressed_values.to_a.sort
     end
 
-    o[compressed_key_key] = @compressed_key.join if !@compressed_key.empty?
-
     if !@children.empty?
       c = {}
-      @children.each {|k, v| c[k] = v }
-      o[children_key] = c
+      @children.each do |k, v|
+        c[k] = v.to_json_objects(values_key, children_key, compressed_key_key)
+      end
+      if children_key
+        o[children_key] = c
+      else
+        o = o.merge(c)
+      end
     end
 
-    o.to_json
+    o
   end
 
   ##
